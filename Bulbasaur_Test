@@ -1,0 +1,19 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+
+from bs4 import BeautifulSoup, element
+import requests
+
+driver = webdriver.Chrome(executable_path="C:\\WebDriver\\bin\\chromedriver")
+driver.get("http://www.python.org")
+assert "Python" in driver.title
+
+source = requests.get('https://bulbapedia.bulbagarden.net/wiki/Bulbasaur_(Pok%C3%A9mon)').text
+
+soup = BeautifulSoup(source, 'lxml')
+
+#page = driver.get("https://bulbapedia.bulbagarden.net/wiki/Bulbasaur_(Pok%C3%A9mon)")
+#soup = BeautifulSoup(source, "lxml")
+#stats = soup.find_all('width:85px')
+#print(stats)
+
