@@ -2,14 +2,21 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 
 import requests
-from bs4 import BeautifulSoup, element
+from bs4 import BeautifulSoup as bs, element
 
+import csv
+
+pokemon_url = "https://bulbapedia.bulbagarden.net/wiki/Bulbasaur_(Pok%C3%A9mon)"
 driver = webdriver.Chrome(executable_path="C:\\WebDriver\\bin\\chromedriver")
 driver.get("http://www.python.org")
 assert "Python" in driver.title
+page = driver.get(pokemon_url)
+source = requests.get(pokemon_url).text
+soup = bs(source, "html.parser")
 
-source = requests.get('https://bulbapedia.bulbagarden.net/wiki/Bulbasaur_(Pok%C3%A9mon)').text
-
-soup = BeautifulSoup(source, "lxml")
-stats = soup.find_all('width:85px')
-print(stats)
+name = soup.find("h1").text
+print(name.replace('(Pokémon)', ''))
+stats = soup.find_all('th', attrs={'style':'width:85px; padding-left:0.5em; padding-right:0.5em'})
+for stat in stats:
+    statSplit = stat.text.split(":")
+    print(statSplit[1])
