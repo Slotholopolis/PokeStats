@@ -9,41 +9,21 @@ soup = bs(source, "html.parser")
 
 csv_file = open('pokemon.csv', 'w')
 csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['Pokemon', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+csv_writer.writerow(['Pokemon', 'National Dex Number', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
 
-name = soup.find("h1").text
-print(name.replace('(Pokémon)', ''))
-stat0 = soup.find_all('div', attrs={'style':'float:right'})[0]
-for stat in stat0:
-    hp = stat.text.split("float:right")
-    hp = stat.text.replace("'", "")
-stat1 = soup.find_all('div', attrs={'style':'float:right'})[1]
-for stat in stat1:
-    attack = stat.text.split("float:right")
-    attack = stat.text.replace("'", "")
-stat2 = soup.find_all('div', attrs={'style':'float:right'})[2]
-for stat in stat2:
-    defense = stat.text.split("float:right")
-    defense = stat.text.replace("'", "")
-stat3 = soup.find_all('div', attrs={'style':'float:right'})[3]
-for stat in stat3:
-    specialAttack = stat.text.split("float:right")
-    specialAttack = stat.text.replace("'", "")
-stat4 = soup.find_all('div', attrs={'style':'float:right'})[4]
-for stat in stat4:
-    specialDefense = stat.text.split("float:right")
-    specialDefense = stat.text.replace("'", "")
-stat5 = soup.find_all('div', attrs={'style':'float:right'})[5]
-for stat in stat5:
-    speed = stat.text.split("float:right")
-    speed = stat.text.replace("'", "")
-stat6 = soup.find_all('div', attrs={'style':'float:right'})[6]
-for stat in stat6:
-    baseTotal = stat.text.split("float:right")
-    baseTotal = stat.text.replace("'", "")
-print(hp, attack, defense, specialAttack, specialDefense, speed, baseTotal)
+name = soup.find("h1").text.replace(' (Pokémon)', '')
+row = [name]
 
+#dexNo = soup.find('span', attrs={'style': 'color:#000;'})
+#for dex in dexNo:
+    row.append(dex.text)
+#print(row)
 
-csv_writer.writerow([name.replace('(Pokémon)', ''), hp, attack, defense, specialAttack, specialDefense, speed, baseTotal])
+stats = soup.find_all('div', attrs={'style': 'float:right'})
+for stat in stats:
+    row.append(stat.text)
+print(row)
+    
+csv_writer.writerow(row)
  
 csv_file.close()
