@@ -14,11 +14,11 @@ csv_writer.writerow(['Pokemon', 'National Dex Number', 'HP', 'Attack', 'Defense'
 name = soup.find("h1").text.replace(' (Pokémon)', '')
 row = [name]
 
-#dexNo = soup.find('span', attrs={'style': 'color:#000;'})
-#for dex in dexNo:
+dexNo = soup.find('span', attrs={'style': 'color:#000;'})[6]
+for dex in dexNo:
     row.append(dex.text)
-#print(row)
 
+#--New Issue, Pokemon with different forms or Megas will loop through all stats. Define Break statement after 7 iterations--
 stats = soup.find_all('div', attrs={'style': 'float:right'})
 for stat in stats:
     row.append(stat.text)
