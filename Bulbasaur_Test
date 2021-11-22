@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup as bs, element
 
+import re
 import csv
 
 pokemon_url = "https://bulbapedia.bulbagarden.net/wiki/Bulbasaur_(Pok%C3%A9mon)"
