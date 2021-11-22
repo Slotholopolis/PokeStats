@@ -12,18 +12,31 @@ csv_writer = csv.writer(csv_file)
 csv_writer.writerow(['Pokemon', 'National Dex Number', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
 
 name = soup.find("h1").text.replace(' (Pokémon)', '')
-row = [name]
 
 dexNo = soup.find('span', attrs={'style': 'color:#000;'})[6]
-for dex in dexNo:
-    row.append(dex.text)
+    
+para = soup.find('div', attrs={'class': 'mw-parser-output'})
+typeText = para.p
+types = soup.find_all('a', href=re.compile(r"(type)"))
+type1 = types[0]
+type2 = types[1]
 
-#--New Issue, Pokemon with different forms or Megas will loop through all stats. Define Break statement after 7 iterations--
 stats = soup.find_all('div', attrs={'style': 'float:right'})
+
+row= [name]
+for data in dexNo:
+    row.append(dexNo.text)
+    row.append(type1.text)
+    if ") is a dual-type " in typeText:
+        row.append(type2.text)
+    else:
+        row.append("None")
 for stat in stats:
     row.append(stat.text)
 print(row)
-    
+
+#--New Issue, Pokemon with different forms or Megas will loop through all stats. Define Break statement after 7 iterations--
+
 csv_writer.writerow(row)
  
 csv_file.close()
