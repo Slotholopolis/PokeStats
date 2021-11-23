@@ -4,40 +4,61 @@ from bs4 import BeautifulSoup as bs, element
 import re
 import csv
 
-pokemon_url = "https://bulbapedia.bulbagarden.net/wiki/Bulbasaur_(Pok%C3%A9mon)"
+pokemon_url = "https://bulbapedia.bulbagarden.net/wiki/Scyther_(Pok%C3%A9mon)"
 source = requests.get(pokemon_url).text
 soup = bs(source, "html.parser")
 
-csv_file = open('pokemon.csv', 'w')
-csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['Pokemon', 'National Dex Number', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+#csv_file = open('pokemon.csv', 'w')
+#csv_writer = csv.writer(csv_file)
+#csv_writer.writerow(['Pokemon', 'National Dex Number', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Male Ratio', 'Female Ratio', 'Full Health Catch Rate', 'Weight', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
 
 name = soup.find("h1").text.replace(' (Pokémon)', '')
 
-dexNo = soup.find('span', attrs={'style': 'color:#000;'})[6]
-    
+dexNo = soup.find_all('span', attrs={'style': 'color:#000;'})[6]
+
 para = soup.find('div', attrs={'class': 'mw-parser-output'})
 typeText = para.p
 types = soup.find_all('a', href=re.compile(r"(type)"))
 type1 = types[0]
 type2 = types[1]
 
+abilityText = soup.find_all('td', attrs={'width': '50%'})[1].text
+abilityLink = soup.find_all('a', href=re.compile(r"(Ability)"))
+ability0 = abilityLink[1]
+ability1 = abilityLink[2]
+abilityHidden = soup.find_all('td', attrs={'width': '50%'})[4]
+
+male = soup.find('span', attrs={'style': 'color:#0000FF;'})
+female = soup.find('span', attrs={'style': 'color:#FF6060;'})
+
+catchRate = soup.find_all('span', attrs={'class': 'explain'})[1]
+
+weight = soup.find(text= re.compile(r" kg"))
+
 stats = soup.find_all('div', attrs={'style': 'float:right'})
 
-row= [name]
+row = [name]
 for data in dexNo:
-    row.append(dexNo.text)
+    row.append(dexNo.text.replace('#', ''))
     row.append(type1.text)
     if ") is a dual-type " in typeText:
         row.append(type2.text)
     else:
         row.append("None")
+    row.append(ability0.text)
+    if "or " in abilityText:
+        row.append(ability1.text)
+    else:
+        row.append("None")
+    row.append(abilityHidden.text.replace(' Hidden Ability\n', ''))
+    row.append(male.text.replace(' male', ''))
+    row.append(female.text.replace(' female', ''))
+    row.append(catchRate.text)
+    row.append(weight.replace('\n', ''))
 for stat in stats:
     row.append(stat.text)
 print(row)
 
-#--New Issue, Pokemon with different forms or Megas will loop through all stats. Define Break statement after 7 iterations--
+#csv_writer.writerow(row)
 
-csv_writer.writerow(row)
- 
-csv_file.close()
+#csv_file.close()
