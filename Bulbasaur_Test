@@ -4,13 +4,14 @@ from bs4 import BeautifulSoup as bs, element
 import re
 import csv
 
-pokemon_url = "https://bulbapedia.bulbagarden.net/wiki/Scyther_(Pok%C3%A9mon)"
+base_url = "https://bulbapedia.bulbagarden.net"
+pokemon_url = base_url + "/wiki/Scyther_(Pok%C3%A9mon)"
 source = requests.get(pokemon_url).text
 soup = bs(source, "html.parser")
 
-#csv_file = open('pokemon.csv', 'w')
-#csv_writer = csv.writer(csv_file)
-#csv_writer.writerow(['Pokemon', 'National Dex Number', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Male Ratio', 'Female Ratio', 'Full Health Catch Rate', 'Primary Egg Grop', 'Secondary Egg Group', 'Weight', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+csv_file = open('pokemon.csv', 'w')
+csv_writer = csv.writer(csv_file)
+csv_writer.writerow(['Pokemon', 'National Dex Number', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Male Ratio', 'Female Ratio', 'Full Health Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Primary Egg Group', 'Secondary Egg Group', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
 
 name = soup.find("h1").text.replace(' (Pokémon)', '')
 
@@ -33,11 +34,18 @@ female = soup.find('span', attrs={'style': 'color:#FF6060;'})
 
 catchRate = soup.find_all('span', attrs={'class': 'explain'})[1]
 
+hatch = soup.find('small', text=re.compile(r"steps")).parent
+hatchRate = hatch.text.replace('steps\n', '')
+
 egg = soup.find_all('a', href=re.compile(r"(Egg_Group)"))[1:]
 
-weight = soup.find(text= re.compile(r" kg"))
+height = soup.find('td', text= re.compile(r" m"))
+weight = soup.find('td', text= re.compile(r" kg"))
 
 stats = soup.find_all('div', attrs={'style': 'float:right'})
+
+arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
+nextPoke = arrowLink.a['href']
 
 row = [name]
 for data in dexNo:
@@ -56,15 +64,18 @@ for data in dexNo:
     row.append(male.text.replace(' male', ''))
     row.append(female.text.replace(' female', ''))
     row.append(catchRate.text)
+    row.append(height.text.replace('\n', ''))
+    row.append(weight.text.replace('\n', ''))
+    row.append(hatchRate.replace('\xa0', ''))
 for groups in egg:
     row.append(groups.text)
     if len(egg) == 1:
         row.append('None')
-    row.append(weight.replace('\n', ''))
+    
 for stat in stats:
     row.append(stat.text)
 print(row)
 
-#csv_writer.writerow(row)
+csv_writer.writerow(row)
 
-#csv_file.close()
+csv_file.close()
