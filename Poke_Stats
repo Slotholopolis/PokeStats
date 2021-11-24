@@ -32,7 +32,7 @@ abilityHidden = soup.find_all('td', attrs={'width': '50%'})[4]
 male = soup.find('span', attrs={'style': 'color:#0000FF;'})
 female = soup.find('span', attrs={'style': 'color:#FF6060;'})
 
-catchRate = soup.find('span', title=re.compile(r"ordinary"))
+catchRate = soup.find('span', title=re.compile(r"ordinary Poké Ball"))
 
 hatch = soup.find('small', text=re.compile(r"steps")).parent
 hatchRate = hatch.text.replace('steps\n', '')
