@@ -42,7 +42,7 @@ egg = soup.find_all('a', href=re.compile(r"(Egg_Group)"))[1:]
 height = soup.find('td', text= re.compile(r" m"))
 weight = soup.find('td', text= re.compile(r" kg"))
 
-stats = soup.find_all('div', attrs={'style': 'float:right'})
+stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
 
 arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
 nextPoke = arrowLink.a['href']
