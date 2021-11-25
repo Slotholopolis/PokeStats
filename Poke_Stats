@@ -38,7 +38,7 @@ while True:
     hatch = soup.find('small', text=re.compile(r"steps")).parent
     hatchRate = hatch.text.replace('steps', '').split('-')[0]
 
-    egg = soup.find_all('a', href=re.compile(r"(Egg_Group)"))[1]
+    egg = soup.find('a', text=re.compile(r"Egg Group")).parent.parent
 
     height = soup.find('td', text= re.compile(r" m"))
     weight = soup.find('td', text= re.compile(r" kg"))
@@ -84,7 +84,7 @@ while True:
     row.append(height.text.replace('\n', ''))
     row.append(weight.text.replace('\n', ''))
     row.append(hatchRate.replace('\xa0', ''))
-    row.append(egg.text) 
+    row.append(egg.text[10:].replace('\n', '').replace('\xa0', ' '))
     for stat in stats:
         row.append(stat.text)
     
