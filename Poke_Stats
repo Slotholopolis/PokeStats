@@ -1,54 +1,54 @@
 import requests
 from bs4 import BeautifulSoup as bs, element
-
 import re
 import csv
 
-base_url = "https://bulbapedia.bulbagarden.net"
-pokemon_url = base_url + "/wiki/Scyther_(Pok%C3%A9mon)"
-source = requests.get(pokemon_url).text
-soup = bs(source, "html.parser")
-
-csv_file = open('pokemon.csv', 'w')
+csv_file = open('pokemon.csv', 'w', encoding='utf-8') 
 csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['Pokemon', 'National Dex Number', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Male Ratio', 'Female Ratio', 'Full Health Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Primary Egg Group', 'Secondary Egg Group', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+csv_writer.writerow(['Pokemon', 'National Dex Number', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Male Ratio', 'Female Ratio', 'Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Primary Egg Group', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
 
-name = soup.find("h1").text.replace(' (Pokémon)', '')
+base_url = "https://bulbapedia.bulbagarden.net"
+pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
 
-dexNo = soup.find_all('span', attrs={'style': 'color:#000;'})[6]
+while True:
+    source = requests.get(pokemon_url).text
+    soup = bs(source, "html.parser")
 
-para = soup.find('div', attrs={'class': 'mw-parser-output'})
-typeText = para.p
-types = soup.find_all('a', href=re.compile(r"(type)"))
-type1 = types[0]
-type2 = types[1]
+    name = soup.find("h1").text.replace(' (Pokémon)', '')
 
-abilityText = soup.find_all('td', attrs={'width': '50%'})[1].text
-abilityLink = soup.find_all('a', href=re.compile(r"(Ability)"))
-ability0 = abilityLink[1]
-ability1 = abilityLink[2]
-abilityHidden = soup.find_all('td', attrs={'width': '50%'})[4]
+    dexNo = soup.find_all('span', attrs={'style': 'color:#000;'})[6]
 
-male = soup.find('span', attrs={'style': 'color:#0000FF;'})
-female = soup.find('span', attrs={'style': 'color:#FF6060;'})
+    para = soup.find('div', attrs={'class': 'mw-parser-output'})
+    typeText = para.p
+    types = soup.find_all('a', href=re.compile(r"(type)"))
+    type1 = types[0]
+    type2 = types[1]
 
-catchRate = soup.find('span', title=re.compile(r"ordinary Poké Ball"))
+    abilityText = soup.find_all('td', attrs={'width': '50%'})[1].text
+    abilityLink = soup.find_all('a', href=re.compile(r"(Ability)"))
+    ability0 = abilityLink[1]
+    ability1 = abilityLink[2]
+    abilityHidden = soup.find('small', text=re.compile(r"Hidden Ability")).parent.text
 
-hatch = soup.find('small', text=re.compile(r"steps")).parent
-hatchRate = hatch.text.replace('steps\n', '')
+    male = soup.find('span', attrs={'style': 'color:#0000FF;'})
+    female = soup.find('span', attrs={'style': 'color:#FF6060;'})
 
-egg = soup.find_all('a', href=re.compile(r"(Egg_Group)"))[1:]
+    catchRate = soup.find('span', title=re.compile(r"ordinary Poké Ball"))
 
-height = soup.find('td', text= re.compile(r" m"))
-weight = soup.find('td', text= re.compile(r" kg"))
+    hatch = soup.find('small', text=re.compile(r"steps")).parent
+    hatchRate = hatch.text.replace('steps', '').split('-')[0]
 
-stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
+    egg = soup.find_all('a', href=re.compile(r"(Egg_Group)"))[1]
 
-arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
-nextPoke = arrowLink.a['href']
+    height = soup.find('td', text= re.compile(r" m"))
+    weight = soup.find('td', text= re.compile(r" kg"))
 
-row = [name]
-for data in dexNo:
+    stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
+
+    arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
+    nextPoke = arrowLink.a['href']
+
+    row = [name]
     row.append(dexNo.text.replace('#', ''))
     row.append(type1.text)
     if ") is a dual-type " in typeText:
@@ -60,22 +60,40 @@ for data in dexNo:
         row.append(ability1.text)
     else:
         row.append("None")
-    row.append(abilityHidden.text.replace(' Hidden Ability\n', ''))
-    row.append(male.text.replace(' male', ''))
-    row.append(female.text.replace(' female', ''))
+    if abilityHidden == "Cacophony Hidden Ability\n":
+        row.append("None")
+    elif 'and Galarian' in abilityHidden:
+        row.append(abilityHidden.replace(name, '').replace('and Galarian ', '').replace(' Hidden Ability\n', ''))
+    elif name in abilityHidden:
+        row.append(abilityHidden.replace(name, '').replace(' Hidden Ability\n', ''))
+    else:
+        row.append(abilityHidden.replace(' Hidden Ability\n', ''))
+    if male is None and female is None:
+        row.append('Genderless')
+        row.append('Genderless')
+    elif male is None:
+        row.append('0%')
+        row.append(female.text. replace(' female', ''))
+    elif female is None:
+        row.append(male.text.replace(' male', ''))
+        row.append('0%')
+    else:
+        row.append(male.text.replace(' male', ''))
+        row.append(female.text.replace(' female', ''))
     row.append(catchRate.text)
     row.append(height.text.replace('\n', ''))
     row.append(weight.text.replace('\n', ''))
     row.append(hatchRate.replace('\xa0', ''))
-for groups in egg:
-    row.append(groups.text)
-    if len(egg) == 1:
-        row.append('None')
+    row.append(egg.text) 
+    for stat in stats:
+        row.append(stat.text)
     
-for stat in stats:
-    row.append(stat.text)
-print(row)
+    print(row)
 
-csv_writer.writerow(row)
+    csv_writer.writerow(row)
+
+    if dexNo.text == "#898":
+        break
+    pokemon_url = base_url + nextPoke
 
 csv_file.close()
