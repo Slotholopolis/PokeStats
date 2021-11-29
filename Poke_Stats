@@ -5,7 +5,7 @@ import csv
 
 csv_file = open('pokemon.csv', 'w', encoding='utf-8') 
 csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['Pokemon', 'National Dex Number', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Male Ratio', 'Female Ratio', 'Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Primary Egg Group', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+csv_writer.writerow(['National Dex Number', 'Pokemon', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Evolution(s)', 'Male Ratio', 'Female Ratio', 'Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Egg Group', 'Mega Evolution', 'Gigantamax Form', 'EV Yield', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
 
 base_url = "https://bulbapedia.bulbagarden.net"
 pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
@@ -14,9 +14,9 @@ while True:
     source = requests.get(pokemon_url).text
     soup = bs(source, "html.parser")
 
-    name = soup.find("h1").text.replace(' (Pokémon)', '')
-
     dexNo = soup.find_all('span', attrs={'style': 'color:#000;'})[6]
+
+    name = soup.find("h1").text.replace(' (Pokémon)', '')
 
     para = soup.find('div', attrs={'class': 'mw-parser-output'})
     typeText = para.p
@@ -35,21 +35,51 @@ while True:
 
     catchRate = soup.find('span', title=re.compile(r"ordinary Poké Ball"))
 
+    height = soup.find('td', text= re.compile(r" m"))
+    weight = soup.find('td', text= re.compile(r" kg"))
+
     hatch = soup.find('small', text=re.compile(r"steps")).parent
-    hatchRate = hatch.text.replace('steps', '').split('-')[0]
+    hatchRate = hatch.text.replace('steps', '').replace('\xa0', '').replace('Egg not obtainable\n', '')
 
     egg = soup.find('a', text=re.compile(r"Egg Group")).parent.parent
 
-    height = soup.find('td', text= re.compile(r" m"))
-    weight = soup.find('td', text= re.compile(r" kg"))
+    mega = soup.find('li', text=re.compile(r"Mega"))
+
+    gmax = soup.find('li', text=re.compile(r"Gigantamax"))
+
+    evhp = soup.find('td', attrs={'width': '16%'}).text.replace('HP\n', ' HP')
+    evatk = soup.find('td', attrs={'width': '17%'}).text.replace('Atk\n', ' Attack')
+    evdef = soup.find_all('td', attrs={'width': '16%'})[1].text.replace('Def\n', ' Def')
+    evspa = soup.find_all('td', attrs={'width': '17%'})[1].text.replace('Sp.Atk\n', ' Sp.Atk')
+    evsd = soup.find_all('td', attrs={'width': '17%'})[2].text.replace('Sp.Def\n', ' Sp.Def')
+    evspd = soup.find_all('td', attrs={'width': '17%'})[3].text.replace('Speed\n', ' Speed')
+    evYield = evhp + " / " + evatk + " / " + evdef + " / " + evspa + " / " + evsd + " / " + evspd
+
+    evo = soup.find_all('p')[1]
+    dne = evo.text.replace('It is n', 'N').replace(' into or from any other Pokémon', '').replace('.\n', '')
+    caly = evo.text.partition(',')[0].replace('While it is n', 'N').replace(' into or from any Pokémon', '')
+    simulTrade = evo.text.split(',')[0]
+    spinEvo = evo.text.split('.')[0]
+    battleEvo = evo.text.replace('It evolves f', 'F').replace('.\n', '').replace('  ', ' ')
+    scrollEvo = evo.find_next('ul').text.replace('Kubfu evolves ', '').replace('i', 'I', 1).replace('.', ' or ', 1).replace('\n', '').replace('Waters.', 'Waters')
+    spinoffEvos = evo.text.partition(' (in the main series games)')[0].replace('It evolves f', 'F')
+    rockEevees = evo.text.partition(' (Sword and Shield)')[0]
+    leafeon = rockEevees.split('is')[0].replace('It evolves f', 'F').replace('it ', 'exposed to a Leaf Stone')
+    glaceon = rockEevees.split('is')[0].replace('It evolves f', 'F').replace('it ', 'exposed to an Ice Stone')
+    sylveon = evo.text.split('knowing')[0].replace('It evolves f', 'F').replace('up ', 'up with high friendship')
+    ogEevees = evo.text.partition('.')[0].replace('It evolves f', 'F')
+    ninEvo = evo.text.partition('.')[0].replace('It is considered a special evolution of Nincada, appearing only w', 'W').replace('starting ', '').replace('It evolves f', 'F').replace('It evolves i', 'I')
+    basicEvo = evo.text.replace('It evolves i', 'I').replace(' starting', '').replace(', which evolves ', ' and ').replace('.\n', '')
+    stage1Evo = evo.text.replace('It evolves ', '').replace('from', 'From').replace(' starting', '').replace('evolves ', '').replace('.\n', '')
+    stage2Evo = evo.text.replace('It evolves f', 'F').replace(' starting', '').replace('. It is the f',' (F').replace('.\n', ')')
 
     stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
 
     arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
     nextPoke = arrowLink.a['href']
 
-    row = [name]
-    row.append(dexNo.text.replace('#', ''))
+    row = [dexNo.text.replace('#', '')]
+    row.append(name)
     row.append(type1.text)
     if ") is a dual-type " in typeText:
         row.append(type2.text)
@@ -68,6 +98,38 @@ while True:
         row.append(abilityHidden.replace(name, '').replace(' Hidden Ability\n', ''))
     else:
         row.append(abilityHidden.replace(' Hidden Ability\n', ''))
+    if ('Calyrex') in evo.text:
+        row.append(caly)
+    elif ('is not known to evolve') in evo.text:
+        row.append(dne)
+    elif ('simultaneously') in evo.text:
+        row.append(simulTrade.replace('It evolves f', 'F').replace('It evolves i', 'I'))
+    elif ('strikes a pose') in evo.text:
+        row.append(spinEvo.replace('It evolves f', 'F').replace('It evolves i', 'I'))
+    elif ('in a single battle') in evo.text:
+        row.append(battleEvo)
+    elif ('into Urshifu') in evo.text:
+        row.append(scrollEvo)
+    elif ('Gale of Darkness') in evo.text:
+        row.append(spinoffEvos)
+    elif ('Moss Rock') in evo.text:
+        row.append(leafeon)
+    elif ('Ice Rock') in evo.text:
+        row.append(glaceon)
+    elif ('Affection') in evo.text:
+        row.append(sylveon)
+    elif ('Eevee') in evo.text:
+        row.append(ogEevees)
+    elif ('Nincada') in evo.text:
+        row.append(ninEvo)
+    elif (', which evolves into') in evo.text:
+        row.append(basicEvo)
+    elif ('evolves from' and 'evolves into') in evo.text:
+        row.append(stage1Evo)
+    elif ('final form') in evo.text:
+        row.append(stage2Evo)
+    else:
+        row.append(stage1Evo)
     if male is None and female is None:
         row.append('Genderless')
         row.append('Genderless')
@@ -83,8 +145,17 @@ while True:
     row.append(catchRate.text)
     row.append(height.text.replace('\n', ''))
     row.append(weight.text.replace('\n', ''))
-    row.append(hatchRate.replace('\xa0', ''))
+    row.append(hatchRate.replace('\n', ''))
     row.append(egg.text[10:].replace('\n', '').replace('\xa0', ' '))
+    if mega is None:
+        row.append('FALSE')
+    else:
+        row.append('TRUE')
+    if gmax is None:
+        row.append('FALSE')
+    else:
+        row.append('TRUE')
+    row.append(evYield)
     for stat in stats:
         row.append(stat.text)
     
