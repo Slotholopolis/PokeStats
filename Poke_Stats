@@ -3,35 +3,54 @@ from bs4 import BeautifulSoup as bs, element
 import re
 import csv
 
-csv_file = open('pokemon.csv', 'w', encoding='utf-8') 
-csv_writer = csv.writer(csv_file)
-csv_writer.writerow(['National Dex Number', 'Pokemon', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Evolution(s)', 'Male Ratio', 'Female Ratio', 'Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Egg Group', 'Mega Evolution', 'Gigantamax Form', 'EV Yield', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+def csv_setup():
+    csv_file = open('pokemon.csv', 'w', encoding='utf-8') 
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(['National Dex Number', 'Pokemon', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Evolution(s)', 'Male Ratio', 'Female Ratio', 'Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Egg Group', 'Mega Evolution', 'Gigantamax Form', 'EV Yield', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
+    return csv_file,csv_writer
 
-base_url = "https://bulbapedia.bulbagarden.net"
-pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
-
-while True:
+def get_pokemon(url):
     source = requests.get(pokemon_url).text
-    soup = bs(source, "html.parser")
+    return bs(source, "html.parser")
 
-    dexNo = soup.find_all('span', attrs={'style': 'color:#000;'})[6]
+def get_dex_number(soup):
+    return soup.find_all('span', attrs={'style': 'color:#000;'})[6]
 
-    name = soup.find("h1").text.replace(' (Pokémon)', '')
+def get_pokemon_name(soup):
+    return soup.find("h1").text.replace(' (Pokémon)', '')
 
+def get_types(soup):
     para = soup.find('div', attrs={'class': 'mw-parser-output'})
     typeText = para.p
     types = soup.find_all('a', href=re.compile(r"(type)"))
-    type1 = types[0]
-    type2 = types[1]
+    return types[0], types[1], typeText
 
+def get_abilities(soup):
     abilityText = soup.find_all('td', attrs={'width': '50%'})[1].text
     abilityLink = soup.find_all('a', href=re.compile(r"(Ability)"))
     ability0 = abilityLink[1]
     ability1 = abilityLink[2]
     abilityHidden = soup.find('small', text=re.compile(r"Hidden Ability")).parent.text
 
-    male = soup.find('span', attrs={'style': 'color:#0000FF;'})
-    female = soup.find('span', attrs={'style': 'color:#FF6060;'})
+    return ability0,ability1,abilityText,abilityHidden
+
+def get_pokeman():
+    csv_file,csv_writer = csv_setup()
+
+    base_url = "https://bulbapedia.bulbagarden.net"
+    pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
+
+while True:
+    soup = get_pokemon(pokemon_url)
+
+    dexNo = get_dex_number(soup)
+    name = get_pokemon_name(soup)
+    
+    type1,type2,typeText = get_types(soup)
+    ability0, ability1, abilityText, abilityHidden = get_abilities(soup)
+    
+    maleRatio = soup.find('span', attrs={'style': 'color:#0000FF;'})
+    femaleRatio = soup.find('span', attrs={'style': 'color:#FF6060;'})
 
     catchRate = soup.find('span', title=re.compile(r"ordinary Poké Ball"))
 
@@ -54,7 +73,7 @@ while True:
     evsd = soup.find_all('td', attrs={'width': '17%'})[2].text.replace('Sp.Def\n', ' Sp.Def')
     evspd = soup.find_all('td', attrs={'width': '17%'})[3].text.replace('Speed\n', ' Speed')
     evYield = evhp + " / " + evatk + " / " + evdef + " / " + evspa + " / " + evsd + " / " + evspd
-
+    
     evo = soup.find_all('p')[1]
     dne = evo.text.replace('It is n', 'N').replace(' into or from any other Pokémon', '').replace('.\n', '')
     caly = evo.text.partition(',')[0].replace('While it is n', 'N').replace(' into or from any Pokémon', '')
@@ -72,7 +91,7 @@ while True:
     basicEvo = evo.text.replace('It evolves i', 'I').replace(' starting', '').replace(', which evolves ', ' and ').replace('.\n', '')
     stage1Evo = evo.text.replace('It evolves ', '').replace('from', 'From').replace(' starting', '').replace('evolves ', '').replace('.\n', '')
     stage2Evo = evo.text.replace('It evolves f', 'F').replace(' starting', '').replace('. It is the f',' (F').replace('.\n', ')')
-
+    
     stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
 
     arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
@@ -130,18 +149,18 @@ while True:
         row.append(stage2Evo)
     else:
         row.append(stage1Evo)
-    if male is None and female is None:
+    if maleRatio is None and femaleRatio is None:
         row.append('Genderless')
         row.append('Genderless')
-    elif male is None:
+    elif maleRatio is None:
         row.append('0%')
         row.append(female.text. replace(' female', ''))
-    elif female is None:
+    elif femaleRatio is None:
         row.append(male.text.replace(' male', ''))
         row.append('0%')
     else:
-        row.append(male.text.replace(' male', ''))
-        row.append(female.text.replace(' female', ''))
+        row.append(maleRatio.text.replace(' male', ''))
+        row.append(femaleRatio.text.replace(' female', ''))
     row.append(catchRate.text)
     row.append(height.text.replace('\n', ''))
     row.append(weight.text.replace('\n', ''))
@@ -161,10 +180,13 @@ while True:
     
     print(row)
 
-    csv_writer.writerow(row)
+    csv_setup.writerow(row)
 
-    if dexNo.text == "#898":
+    if dexNo.text == "#003":
         break
     pokemon_url = base_url + nextPoke
 
-csv_file.close()
+csv_setup.close()
+
+if __name__ == "__main__":
+    get_pokemon()
