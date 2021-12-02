@@ -9,7 +9,7 @@ def csv_setup():
     csv_writer.writerow(['National Dex Number', 'Pokemon', 'Primary Type', 'Secondary Type', 'Ability 0', 'Ability 1', 'Hidden Ability', 'Evolution(s)', 'Male Ratio', 'Female Ratio', 'Catch Rate', 'Height', 'Weight', 'Hatch Rate (Steps)', 'Egg Group', 'Mega Evolution', 'Gigantamax Form', 'EV Yield', 'HP', 'Attack', 'Defense', 'Special Attack', 'Special Defense', 'Speed', 'Base Stat Total'])
     return csv_file,csv_writer
 
-def get_pokemon(url):
+def get_pokemon(pokemon_url):
     source = requests.get(pokemon_url).text
     return bs(source, "html.parser")
 
@@ -31,41 +31,39 @@ def get_abilities(soup):
     ability0 = abilityLink[1]
     ability1 = abilityLink[2]
     abilityHidden = soup.find('small', text=re.compile(r"Hidden Ability")).parent.text
+    retconHability = abilityHidden.partition('Gen')[0]
 
-    return ability0,ability1,abilityText,abilityHidden
+    return ability0, ability1, abilityText, abilityHidden, retconHability
 
-def get_pokeman():
-    csv_file,csv_writer = csv_setup()
-
-    base_url = "https://bulbapedia.bulbagarden.net"
-    pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
-
-while True:
-    soup = get_pokemon(pokemon_url)
-
-    dexNo = get_dex_number(soup)
-    name = get_pokemon_name(soup)
-    
-    type1,type2,typeText = get_types(soup)
-    ability0, ability1, abilityText, abilityHidden = get_abilities(soup)
-    
+def get_gender_ratio(soup):
     maleRatio = soup.find('span', attrs={'style': 'color:#0000FF;'})
     femaleRatio = soup.find('span', attrs={'style': 'color:#FF6060;'})
+    return maleRatio, femaleRatio
 
+def get_catch_rate(soup):
     catchRate = soup.find('span', title=re.compile(r"ordinary Poké Ball"))
+    return catchRate
 
+def get_pokemon_size(soup):
     height = soup.find('td', text= re.compile(r" m"))
     weight = soup.find('td', text= re.compile(r" kg"))
+    return height, weight
 
+def get_hatch_rate(soup):
     hatch = soup.find('small', text=re.compile(r"steps")).parent
     hatchRate = hatch.text.replace('steps', '').replace('\xa0', '').replace('Egg not obtainable\n', '')
+    return hatchRate
 
-    egg = soup.find('a', text=re.compile(r"Egg Group")).parent.parent
+def get_egg_group(soup):
+    eggGroup = soup.find('a', text=re.compile(r"Egg Group")).parent.parent
+    return eggGroup
 
+def get_form_status(soup):
     mega = soup.find('li', text=re.compile(r"Mega"))
-
     gmax = soup.find('li', text=re.compile(r"Gigantamax"))
+    return mega, gmax
 
+def get_ev_yield(soup):
     evhp = soup.find('td', attrs={'width': '16%'}).text.replace('HP\n', ' HP')
     evatk = soup.find('td', attrs={'width': '17%'}).text.replace('Atk\n', ' Attack')
     evdef = soup.find_all('td', attrs={'width': '16%'})[1].text.replace('Def\n', ' Def')
@@ -73,7 +71,9 @@ while True:
     evsd = soup.find_all('td', attrs={'width': '17%'})[2].text.replace('Sp.Def\n', ' Sp.Def')
     evspd = soup.find_all('td', attrs={'width': '17%'})[3].text.replace('Speed\n', ' Speed')
     evYield = evhp + " / " + evatk + " / " + evdef + " / " + evspa + " / " + evsd + " / " + evspd
-    
+    return evYield
+
+def get_evolution_status(soup):
     evo = soup.find_all('p')[1]
     dne = evo.text.replace('It is n', 'N').replace(' into or from any other Pokémon', '').replace('.\n', '')
     caly = evo.text.partition(',')[0].replace('While it is n', 'N').replace(' into or from any Pokémon', '')
@@ -90,103 +90,149 @@ while True:
     ninEvo = evo.text.partition('.')[0].replace('It is considered a special evolution of Nincada, appearing only w', 'W').replace('starting ', '').replace('It evolves f', 'F').replace('It evolves i', 'I')
     basicEvo = evo.text.replace('It evolves i', 'I').replace(' starting', '').replace(', which evolves ', ' and ').replace('.\n', '')
     stage1Evo = evo.text.replace('It evolves ', '').replace('from', 'From').replace(' starting', '').replace('evolves ', '').replace('.\n', '')
+    splitstage2 = evo.text.replace('It evolves f', 'F').replace(' It is o', ' (O').replace('.\n', ')')
     stage2Evo = evo.text.replace('It evolves f', 'F').replace(' starting', '').replace('. It is the f',' (F').replace('.\n', ')')
-    
-    stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
 
+    return evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo
+
+def get_base_stats(soup):
+    stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
+    return stats
+
+def get_next_url(soup):
     arrowLink = soup.find_all('td', attrs={'style': 'text-align: left'})[1]
     nextPoke = arrowLink.a['href']
+    return nextPoke
 
-    row = [dexNo.text.replace('#', '')]
-    row.append(name)
-    row.append(type1.text)
-    if ") is a dual-type " in typeText:
-        row.append(type2.text)
-    else:
-        row.append("None")
-    row.append(ability0.text)
-    if "or " in abilityText:
-        row.append(ability1.text)
-    else:
-        row.append("None")
-    if abilityHidden == "Cacophony Hidden Ability\n":
-        row.append("None")
-    elif 'and Galarian' in abilityHidden:
-        row.append(abilityHidden.replace(name, '').replace('and Galarian ', '').replace(' Hidden Ability\n', ''))
-    elif name in abilityHidden:
-        row.append(abilityHidden.replace(name, '').replace(' Hidden Ability\n', ''))
-    else:
-        row.append(abilityHidden.replace(' Hidden Ability\n', ''))
-    if ('Calyrex') in evo.text:
-        row.append(caly)
-    elif ('is not known to evolve') in evo.text:
-        row.append(dne)
-    elif ('simultaneously') in evo.text:
-        row.append(simulTrade.replace('It evolves f', 'F').replace('It evolves i', 'I'))
-    elif ('strikes a pose') in evo.text:
-        row.append(spinEvo.replace('It evolves f', 'F').replace('It evolves i', 'I'))
-    elif ('in a single battle') in evo.text:
-        row.append(battleEvo)
-    elif ('into Urshifu') in evo.text:
-        row.append(scrollEvo)
-    elif ('Gale of Darkness') in evo.text:
-        row.append(spinoffEvos)
-    elif ('Moss Rock') in evo.text:
-        row.append(leafeon)
-    elif ('Ice Rock') in evo.text:
-        row.append(glaceon)
-    elif ('Affection') in evo.text:
-        row.append(sylveon)
-    elif ('Eevee') in evo.text:
-        row.append(ogEevees)
-    elif ('Nincada') in evo.text:
-        row.append(ninEvo)
-    elif (', which evolves into') in evo.text:
-        row.append(basicEvo)
-    elif ('evolves from' and 'evolves into') in evo.text:
-        row.append(stage1Evo)
-    elif ('final form') in evo.text:
-        row.append(stage2Evo)
-    else:
-        row.append(stage1Evo)
-    if maleRatio is None and femaleRatio is None:
-        row.append('Genderless')
-        row.append('Genderless')
-    elif maleRatio is None:
-        row.append('0%')
-        row.append(female.text. replace(' female', ''))
-    elif femaleRatio is None:
-        row.append(male.text.replace(' male', ''))
-        row.append('0%')
-    else:
-        row.append(maleRatio.text.replace(' male', ''))
-        row.append(femaleRatio.text.replace(' female', ''))
-    row.append(catchRate.text)
-    row.append(height.text.replace('\n', ''))
-    row.append(weight.text.replace('\n', ''))
-    row.append(hatchRate.replace('\n', ''))
-    row.append(egg.text[10:].replace('\n', '').replace('\xa0', ' '))
-    if mega is None:
-        row.append('FALSE')
-    else:
-        row.append('TRUE')
-    if gmax is None:
-        row.append('FALSE')
-    else:
-        row.append('TRUE')
-    row.append(evYield)
-    for stat in stats:
-        row.append(stat.text)
-    
-    print(row)
+def get_pokemon_data():
+    csv_file,csv_writer = csv_setup()
 
-    csv_setup.writerow(row)
+    base_url = "https://bulbapedia.bulbagarden.net"
+    pokemon_url = base_url + "/wiki/Accelgor_(Pokémon)"
 
-    if dexNo.text == "#003":
-        break
-    pokemon_url = base_url + nextPoke
+    while True:
+        soup = get_pokemon(pokemon_url)
 
-csv_setup.close()
+        dexNo = get_dex_number(soup)
+        name = get_pokemon_name(soup)
+        
+        type1,type2,typeText = get_types(soup)
+        ability0, ability1, abilityText, abilityHidden, retconHability = get_abilities(soup)
+
+        maleRatio, femaleRatio = get_gender_ratio(soup)
+
+        catchRate = get_catch_rate(soup)
+
+        height, weight = get_pokemon_size(soup)
+
+        hatchRate = get_hatch_rate(soup)
+
+        eggGroup = get_egg_group(soup)
+
+        mega, gmax = get_form_status(soup)
+
+        evYield = get_ev_yield(soup)
+        
+        evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo = get_evolution_status(soup)
+        
+        stats = get_base_stats(soup)
+
+        nextPoke = get_next_url(soup)
+
+        row = [dexNo.text.replace('#', '')]
+        row.append(name)
+        row.append(type1.text)
+        if ") is a dual-type " in typeText:
+            row.append(type2.text)
+        else:
+            row.append("None")
+        row.append(ability0.text)
+        if "or " in abilityText:
+            row.append(ability1.text)
+        else:
+            row.append("None")
+        if abilityHidden == "Cacophony Hidden Ability\n":
+            row.append("None")
+        elif 'and Galarian' in abilityHidden:
+            row.append(abilityHidden.replace(name, '').replace('and Galarian ', '').replace(' Hidden Ability\n', ''))
+        elif 'Gen' in abilityHidden:
+            row.append(retconHability)
+        elif name in abilityHidden:
+            row.append(abilityHidden.replace(name, '').replace(' Hidden Ability\n', ''))
+        else:
+            row.append(abilityHidden.replace(' Hidden Ability\n', ''))
+        if ('Calyrex') in evo.text:
+            row.append(caly)
+        elif ('is not known to evolve') in evo.text:
+            row.append(dne)
+        elif ('simultaneously') in evo.text:
+            row.append(simulTrade.replace('It evolves f', 'F').replace('It evolves i', 'I'))
+        elif ('strikes a pose') in evo.text:
+            row.append(spinEvo.replace('It evolves f', 'F').replace('It evolves i', 'I'))
+        elif ('in a single battle') in evo.text:
+            row.append(battleEvo)
+        elif ('into Urshifu') in evo.text:
+            row.append(scrollEvo)
+        elif ('Gale of Darkness') in evo.text:
+            row.append(spinoffEvos)
+        elif ('Moss Rock') in evo.text:
+            row.append(leafeon)
+        elif ('Ice Rock') in evo.text:
+            row.append(glaceon)
+        elif ('Affection') in evo.text:
+            row.append(sylveon)
+        elif ('Eevee') in evo.text:
+            row.append(ogEevees)
+        elif ('Nincada') in evo.text:
+            row.append(ninEvo)
+        elif (', which evolves into') in evo.text:
+            row.append(basicEvo)
+        elif ('evolves from' and 'evolves into') in evo.text:
+            row.append(stage1Evo)
+        elif ('It is one of') in evo.text:
+            row.append(splitstage2)
+        elif ('final form') in evo.text:
+            row.append(stage2Evo)
+        else:
+            row.append(stage1Evo)
+        if maleRatio is None and femaleRatio is None:
+            row.append('Genderless')
+            row.append('Genderless')
+        elif maleRatio is None:
+            row.append('0%')
+            row.append(femaleRatio.text. replace(' female', ''))
+        elif femaleRatio is None:
+            row.append(maleRatio.text.replace(' male', ''))
+            row.append('0%')
+        else:
+            row.append(maleRatio.text.replace(' male', ''))
+            row.append(femaleRatio.text.replace(' female', ''))
+        row.append(catchRate.text)
+        row.append(height.text.replace('\n', ''))
+        row.append(weight.text.replace('\n', ''))
+        row.append(hatchRate.replace('\n', ''))
+        row.append(eggGroup.text[10:].replace('\n', '').replace('\xa0', ' '))
+        if mega is None:
+            row.append('FALSE')
+        else:
+            row.append('TRUE')
+        if gmax is None:
+            row.append('FALSE')
+        else:
+            row.append('TRUE')
+        row.append(evYield)
+        for stat in stats:
+            row.append(stat.text)
+        
+        print(row)
+
+        csv_writer.writerow(row)
+
+        if dexNo.text == "#003":
+            break
+        pokemon_url = base_url + nextPoke
+
+    csv_file.close()
 
 if __name__ == "__main__":
-    get_pokemon()
+    get_pokemon_data()
