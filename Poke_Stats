@@ -108,7 +108,7 @@ def get_pokemon_data():
     csv_file,csv_writer = csv_setup()
 
     base_url = "https://bulbapedia.bulbagarden.net"
-    pokemon_url = base_url + "/wiki/Accelgor_(Pokémon)"
+    pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
 
     while True:
         soup = get_pokemon(pokemon_url)
@@ -228,7 +228,7 @@ def get_pokemon_data():
 
         csv_writer.writerow(row)
 
-        if dexNo.text == "#003":
+        if dexNo.text == "#898":
             break
         pokemon_url = base_url + nextPoke
 
