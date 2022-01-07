@@ -77,8 +77,8 @@ def get_evolution_status(soup):
     evo = soup.find_all('p')[1]
     dne = evo.text.replace('It is n', 'N').replace(' into or from any other Pokémon', '').replace('.\n', '')
     caly = evo.text.partition(',')[0].replace('While it is n', 'N').replace(' into or from any Pokémon', '')
-    simulTrade = evo.text.split(',')[0]
-    spinEvo = evo.text.split('.')[0]
+    simulTrade = evo.text.replace('It evolves f', 'F').replace('It evolves i', 'I').split(',')[0]
+    spinEvo = evo.text.replace('It evolves f', 'F').replace('It evolves i', 'I').split('.')[0]
     battleEvo = evo.text.replace('It evolves f', 'F').replace('.\n', '').replace('  ', ' ')
     scrollEvo = evo.find_next('ul').text.replace('Kubfu evolves ', '').replace('i', 'I', 1).replace('.', ' or ', 1).replace('\n', '').replace('Waters.', 'Waters')
     spinoffEvos = evo.text.partition(' (in the main series games)')[0].replace('It evolves f', 'F')
@@ -92,8 +92,13 @@ def get_evolution_status(soup):
     stage1Evo = evo.text.replace('It evolves ', '').replace('from', 'From').replace(' starting', '').replace('evolves ', '').replace('.\n', '')
     splitstage2 = evo.text.replace('It evolves f', 'F').replace(' It is o', ' (O').replace('.\n', ')')
     stage2Evo = evo.text.replace('It evolves f', 'F').replace(' starting', '').replace('. It is the f',' (F').replace('.\n', ')')
+    lee = evo.findNext('li')
+    chan = lee.findNext('li')
+    top = chan.findNext('li')
+    megaEvo = evo.text.replace('While i', 'I').split(',')[0]
+    gigantamax = evo.text.replace('While it is n', 'N').split(',')[0]
 
-    return evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo
+    return evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo, lee, chan, top, megaEvo, gigantamax
 
 def get_base_stats(soup):
     stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
@@ -133,7 +138,7 @@ def get_pokemon_data():
 
         evYield = get_ev_yield(soup)
         
-        evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo = get_evolution_status(soup)
+        evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo, lee, chan, top, megaEvo, gigantamax = get_evolution_status(soup)
         
         stats = get_base_stats(soup)
 
@@ -163,12 +168,18 @@ def get_pokemon_data():
             row.append(abilityHidden.replace(' Hidden Ability\n', ''))
         if ('Calyrex') in evo.text:
             row.append(caly)
+        elif ('Mega Evolve') in evo.text:
+            row.append(megaEvo)
+        elif ('Gigantamax form') in evo.text:
+            row.append(gigantamax)
         elif ('is not known to evolve') in evo.text:
             row.append(dne)
+        elif ('three different') in evo.text:
+            row.append((evo.text + ' ' + lee.text + ' ' + chan.text + ' ' + top.text).replace ('\n', ''))
         elif ('simultaneously') in evo.text:
-            row.append(simulTrade.replace('It evolves f', 'F').replace('It evolves i', 'I'))
+            row.append(simulTrade)
         elif ('strikes a pose') in evo.text:
-            row.append(spinEvo.replace('It evolves f', 'F').replace('It evolves i', 'I'))
+            row.append(spinEvo)
         elif ('in a single battle') in evo.text:
             row.append(battleEvo)
         elif ('into Urshifu') in evo.text:
