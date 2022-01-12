@@ -31,9 +31,11 @@ def get_abilities(soup):
     ability0 = abilityLink[1]
     ability1 = abilityLink[2]
     abilityHidden = soup.find('small', text=re.compile(r"Hidden Ability")).parent.text
+    abilityForms = abilityHidden.replace('Altered Forme', ' (Altered Forme)')
+    # Altered Forme, Incarnate Forme, Midday Form, 
     retconHability = abilityHidden.partition('Gen')[0]
 
-    return ability0, ability1, abilityText, abilityHidden, retconHability
+    return ability0, ability1, abilityText, abilityHidden, retconHability, abilityForms
 
 def get_gender_ratio(soup):
     maleRatio = soup.find('span', attrs={'style': 'color:#0000FF;'})
@@ -97,8 +99,16 @@ def get_evolution_status(soup):
     top = chan.findNext('li')
     megaEvo = evo.text.replace('While i', 'I').split(',')[0]
     gigantamax = evo.text.replace('While it is n', 'N').split(',')[0]
+    unown = evo.text.split(',')[0].replace('While it is n', 'N').replace(' into or from any Pokémon', '')
+    #without fainting Runerigus
+    #Magearna [1]
+    #Hoopa - Prison Bottle
+    #Furfrou - appearance
+    #Kyurem - Reshi or Zek
+    #Shaymin - Gracidea flower
+    #Giratina - Griseous Orb
 
-    return evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo, lee, chan, top, megaEvo, gigantamax
+    return evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo, lee, chan, top, megaEvo, gigantamax, unown
 
 def get_base_stats(soup):
     stats = soup.find_all('div', attrs={'style': 'float:right'})[:7]
@@ -113,7 +123,7 @@ def get_pokemon_data():
     csv_file,csv_writer = csv_setup()
 
     base_url = "https://bulbapedia.bulbagarden.net"
-    pokemon_url = base_url + "/wiki/Bulbasaur_(Pokémon)"
+    pokemon_url = base_url + "/wiki/Tornadus_(Pokémon)"
 
     while True:
         soup = get_pokemon(pokemon_url)
@@ -122,7 +132,7 @@ def get_pokemon_data():
         name = get_pokemon_name(soup)
         
         type1,type2,typeText = get_types(soup)
-        ability0, ability1, abilityText, abilityHidden, retconHability = get_abilities(soup)
+        ability0, ability1, abilityText, abilityHidden, abilityForms, retconHability = get_abilities(soup)
 
         maleRatio, femaleRatio = get_gender_ratio(soup)
 
@@ -138,7 +148,7 @@ def get_pokemon_data():
 
         evYield = get_ev_yield(soup)
         
-        evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo, lee, chan, top, megaEvo, gigantamax = get_evolution_status(soup)
+        evo, dne, caly, simulTrade, spinEvo, battleEvo, scrollEvo, spinoffEvos, leafeon, glaceon, sylveon, ogEevees, ninEvo, basicEvo, stage1Evo, splitstage2, stage2Evo, lee, chan, top, megaEvo, gigantamax, unown = get_evolution_status(soup)
         
         stats = get_base_stats(soup)
 
@@ -165,13 +175,15 @@ def get_pokemon_data():
         elif name in abilityHidden:
             row.append(abilityHidden.replace(name, '').replace(' Hidden Ability\n', ''))
         else:
-            row.append(abilityHidden.replace(' Hidden Ability\n', ''))
+            row.append(abilityForms.replace(' Hidden Ability\n', ''))
         if ('Calyrex') in evo.text:
             row.append(caly)
         elif ('Mega Evolve') in evo.text:
             row.append(megaEvo)
         elif ('Gigantamax form') in evo.text:
             row.append(gigantamax)
+        elif ('Unown') in evo.text:
+            row.append(unown)
         elif ('is not known to evolve') in evo.text:
             row.append(dne)
         elif ('three different') in evo.text:
